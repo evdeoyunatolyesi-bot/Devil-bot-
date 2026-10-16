@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>DEVIL CHATS — Anonymous Chat</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#111c2e;--line:#26354b;--text:#edf3fc;--muted:#91a2bb;--accent:#ff4c6a}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(ellipse at 50% -10%,#35182c 0,var(--bg) 58%);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;padding:28px 14px}
+    .shell{width:100%;max-width:650px}.brand{display:flex;align-items:center;gap:13px;margin:0 2px 24px}.logo{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#ff8798,#ff3159);color:#210812;font-size:26px;font-weight:900}.brand h1{margin:0;font-size:20px;letter-spacing:.5px}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.tag{margin-left:auto;border:1px solid #563246;border-radius:20px;padding:7px 10px;color:#ff9bad;font-size:9px;letter-spacing:1.3px;font-weight:800}
+    .card{border:1px solid var(--line);background:rgba(17,28,46,.96);border-radius:22px;box-shadow:0 22px 70px #0004;overflow:hidden;padding:28px}.eyebrow{color:#ff8da1;font-size:10px;font-weight:800;letter-spacing:1.8px}h2{margin:9px 0 8px;font-size:25px;letter-spacing:-.6px}.muted{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 23px}label{display:block;font-size:12px;font-weight:700;margin:16px 0 8px}input{width:100%;background:#0b1424;border:1px solid #2a3a53;border-radius:11px;padding:14px 13px;color:var(--text);outline:none;font:inherit;font-size:14px}input:focus{border-color:#ff657e}button{border:0;border-radius:11px;cursor:pointer;font:inherit;font-weight:750}#joinBtn{width:100%;padding:14px;margin-top:20px;background:linear-gradient(100deg,#ff8798,#ff3159);color:#240712;font-size:13px}.hint{color:#8193ad;font-size:11px;line-height:1.5}.error{color:#ff9aab;font-size:12px;min-height:18px}.hidden{display:none}.head{display:flex;justify-content:space-between;align-items:center}.secondary{background:#18253a;border:1px solid #34445d;color:#c7d3e7;padding:9px 12px;font-size:12px}.status{margin:16px 0 12px;padding:10px 12px;background:#0b1525;border-radius:9px;color:#a6b4ca;font-size:11px}.messages{height:330px;overflow:auto;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.msg{margin:0 0 13px}.meta{font-size:10px;color:#8a9bb4;margin:0 0 5px}.bubble{display:inline-block;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere;background:#202d43;border-radius:4px 13px 13px 13px;padding:10px 12px;font-size:13px;line-height:1.5}.composer{display:flex;gap:9px;padding-top:15px}.composer input{flex:1;min-width:0}.composer button{background:#ff657e;color:#250813;padding:0 16px}.note{font-size:10px;color:#71839e;text-align:center;line-height:1.5;margin:13px 0 0}footer{text-align:center;color:#60728d;font-size:10px;margin:20px 0}@media(max-width:460px){.card{padding:21px 17px}.tag{font-size:8px;padding:6px}.messages{height:48vh}h2{font-size:22px}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="brand"><div class="logo">☠</div><div><h1>DEVIL CHATS</h1><p>Two strangers. One secret passphrase.</p></div><span class="tag">ANONYMOUS</span></header>
+  <section id="joinCard" class="card">
+    <div class="eyebrow">ENTER THE SHADOW ROOM</div><h2>Start a private chat</h2>
+    <p class="muted">Choose any username. Use the same passphrase as the person you want to connect with.</p>
+    <form id="joinForm">
+      <label for="username">Your username</label><input id="username" maxlength="24" placeholder="e.g. DevilBoy" required>
+      <label for="password">Shared passphrase</label><input id="password" type="password" minlength="8" maxlength="128" placeholder="At least 8 characters" required>
+      <p class="hint">Usernames may be different. The exact same passphrase matches the room. Never use your real account password.</p>
+      <button id="joinBtn" type="submit">Enter DEVIL CHATS →</button><p id="joinError" class="error" role="alert"></p>
+    </form>
+  </section>
+  <section id="chatCard" class="card hidden">
+    <div class="head"><div><div class="eyebrow">YOUR SECRET ROOM</div><h2 id="chatTitle">DEVIL CHATS</h2></div><button id="leaveBtn" class="secondary">Leave</button></div>
+    <div id="status" class="status">Connecting…</div><div id="messages" class="messages"></div>
+    <form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Write a message…" required><button type="submit">Send ↑</button></form>
+    <p class="note">Demo version: messages are not end-to-end encrypted. Serverless storage is temporary and may not sync reliably between requests.</p>
+  </section>
+  <footer>DEVIL CHATS · Private conversations, no public profiles</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let username="",password="",joined=false,lastSignature="";
+$("joinForm").addEventListener("submit",async e=>{
+  e.preventDefault();$("joinError").textContent="";$("joinBtn").disabled=true;
+  username=$("username").value.trim();password=$("password").value;
+  try{
+    const r=await fetch("/api/join",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
+    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Could not join.");
+    joined=true;$("chatTitle").textContent="DEVIL CHATS · "+username;$("joinCard").classList.add("hidden");$("chatCard").classList.remove("hidden");
+    $("password").value="";$("status").textContent="Room joined. Share the passphrase with your friend.";
+    await loadMessages();pollTimer=setInterval(loadMessages,1800);
+  }catch(err){$("joinError").textContent=err.message||"Connection failed."}
+  finally{$("joinBtn").disabled=false}
+});
+let pollTimer=null;
+async function loadMessages(){
+  if(!joined)return;
+  try{
+    const r=await fetch("/api/messages?password="+encodeURIComponent(password),{cache:"no-store"});const d=await r.json();
+    if(!r.ok||!d.ok)return;
+    const signature=JSON.stringify(d.messages);if(signature===lastSignature)return;lastSignature=signature;
+    const box=$("messages");box.replaceChildren();
+    for(const m of d.messages){
+      const row=document.createElement("div");row.className="msg";
+      const meta=document.createElement("div");meta.className="meta";meta.textContent=m.username+" · "+new Date(m.time*1000).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+      const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.message;
+      row.append(meta,bubble);box.append(row);
+    }
+    box.scrollTop=box.scrollHeight;
+  }catch(_){}
+}
+$("sendForm").addEventListener("submit",async e=>{
+  e.preventDefault();const message=$("message").value.trim();if(!joined||!message)return;
+  try{
+    const r=await fetch("/api/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password,message})});
+    const d=await r.json();if(!r.ok||!d.ok){$("status").textContent=d.error||"Message failed.";return}
+    $("message").value="";await loadMessages();
+  }catch(_){$("status").textContent="Could not send. Please retry."}
+});
+$("leaveBtn").addEventListener("click",()=>{joined=false;if(pollTimer)clearInterval(pollTimer);password="";location.reload()});
+</script>
+</body>
+</html>
